@@ -13,9 +13,10 @@ import { ConfigMode, systemStatusLogic } from './systemStatusLogic'
 import { WarningOutlined } from '@ant-design/icons'
 import { InstanceConfigSaveModal } from './InstanceConfigSaveModal'
 import { pluralize } from 'lib/utils'
+import { LemonButton } from '@posthog/lemon-ui'
 
 export function InstanceConfigTab(): JSX.Element {
-    const { configOptions, preflightLoading } = useValues(preflightLogic)
+    const { configOptions, preflight, preflightLoading } = useValues(preflightLogic)
     const { editableInstanceSettings, instanceSettingsLoading, instanceConfigMode, instanceConfigEditingState } =
         useValues(systemStatusLogic)
     const { loadInstanceSettings, setInstanceConfigMode, updateInstanceConfigValue, clearInstanceConfigEditing } =
@@ -106,7 +107,7 @@ export function InstanceConfigTab(): JSX.Element {
                     <h3 className="l3" style={{ marginTop: 16 }}>
                         Instance configuration
                     </h3>
-                    <div className="mb-4">
+                    <div className="mb-3">
                         Changing these settings will take effect on your entire instance.{' '}
                         <a href="https://posthog.com/docs/self-host/configure/instance-settings" target="_blank">
                             Learn more <IconOpenInNew style={{ verticalAlign: 'middle' }} />
@@ -152,10 +153,8 @@ export function InstanceConfigTab(): JSX.Element {
                 rowKey="key"
             />
 
-            <h3 className="l3" style={{ marginTop: 32 }}>
-                Environment configuration
-            </h3>
-            <div className="mb-4">
+            <h3 className="l3 mt-8">Environment configuration</h3>
+            <div className="mb-3">
                 These settings can only be modified by environment variables.{' '}
                 <a href="https://posthog.com/docs/self-host/configure/environment-variables" target="_blank">
                     Learn more <IconOpenInNew style={{ verticalAlign: 'middle' }} />
@@ -166,6 +165,29 @@ export function InstanceConfigTab(): JSX.Element {
             {instanceConfigMode === ConfigMode.Saving && (
                 <InstanceConfigSaveModal onClose={() => setInstanceConfigMode(ConfigMode.Edit)} />
             )}
+
+            {preflight?.demo && <DemoControls />}
         </div>
+    )
+}
+
+function DemoControls(): JSX.Element {
+    return (
+        <>
+            <h3 className="l3 mt-8">Demo controls</h3>
+            <div className="mb-3">Manage the state of this demo environment.</div>
+            <LemonButton
+                type="secondary"
+                status="danger"
+                tooltip={
+                    <>
+                        Erase data of the master project (<code className="whitespace-nowrap">team_id=0</code>) that's
+                        cloned for each new demo user.
+                    </>
+                }
+            >
+                Reset master project
+            </LemonButton>
+        </>
     )
 }
