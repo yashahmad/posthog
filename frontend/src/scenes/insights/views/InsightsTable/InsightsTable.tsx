@@ -29,6 +29,7 @@ import { propertyDefinitionsModel } from '~/models/propertyDefinitionsModel'
 import { formatAggregationValue, formatBreakdownLabel } from 'scenes/insights/utils'
 import { formatAggregationAxisValue } from 'scenes/insights/aggregationAxisFormat'
 import { insightSceneLogic } from 'scenes/insights/insightSceneLogic'
+import { LemonDataGrid } from 'lib/components/LemonDataGrid/LemonDataGrid'
 
 interface InsightsTableProps {
     /** Whether this is just a legend instead of standalone insight viz. Default: false. */
@@ -72,6 +73,7 @@ export function InsightsTable({
     canCheckUncheckSeries = true,
     isMainInsightView = false,
 }: InsightsTableProps): JSX.Element | null {
+    let fixedColumnCount = 0
     const { insightProps, isInDashboardContext, insight } = useValues(insightLogic)
     const { insightMode } = useValues(insightSceneLogic)
     const { indexedResults, hiddenLegendKeys, filters, resultsLoading } = useValues(trendsLogic(insightProps))
@@ -141,6 +143,7 @@ export function InsightsTable({
             },
             width: 0,
         })
+        fixedColumnCount++
     }
 
     columns.push({
@@ -181,6 +184,7 @@ export function InsightsTable({
             return labelA.localeCompare(labelB)
         },
     })
+    fixedColumnCount++
 
     if (filters.breakdown) {
         columns.push({
@@ -226,6 +230,7 @@ export function InsightsTable({
                 return labelA.localeCompare(labelB)
             },
         })
+        fixedColumnCount++
         if (filters.display === ChartDisplayType.WorldMap) {
             columns.push({
                 title: <PropertyKeyInfo disableIcon disablePopover value="$geoip_country_name" />,
@@ -235,6 +240,7 @@ export function InsightsTable({
                     return countryCodeToName[a.breakdown_value as string].localeCompare(b.breakdown_value as string)
                 },
             })
+            fixedColumnCount++
         }
     }
 
@@ -273,6 +279,7 @@ export function InsightsTable({
             dataIndex: 'count',
             align: 'right',
         })
+        fixedColumnCount++
     }
 
     if (indexedResults?.length > 0 && indexedResults[0].data) {
@@ -309,7 +316,18 @@ export function InsightsTable({
     }
 
     const useURLForSorting = insightMode !== ItemMode.Edit
-
+    return (
+        <LemonDataGrid
+            dataSource={isLegend ? indexedResults : indexedResults.filter((r) => !hiddenLegendKeys?.[r.id])}
+            columns={columns}
+            fixedColumnCount={fixedColumnCount}
+            // loading={resultsLoading}
+            // emptyState="No insight results"
+            data-attr="insights-table-graph"
+            className="insights-table"
+            // useURLForSorting={useURLForSorting}
+        />
+    )
     return (
         <LemonTable
             id={isInDashboardContext ? insight.short_id : undefined}
