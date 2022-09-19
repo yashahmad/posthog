@@ -83,19 +83,6 @@ const formLogic = kea<formLogicType>([
                 actions.resetMyForm()
             },
         },
-        simpleForm: {
-            defaults: {
-                name: '',
-            },
-            errors: ({ name }) => ({
-                name: !name ? 'Please enter your name' : undefined,
-            }),
-            submit: async (_, breakpoint) => {
-                await breakpoint(3000)
-                console.log('Form Submitted')
-                actions.resetSimpleForm()
-            },
-        },
     })),
 ])
 
