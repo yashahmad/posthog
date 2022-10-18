@@ -4,13 +4,13 @@ import { LemonTableColumns } from 'lib/components/LemonTable'
 import { normalizeColumnTitle } from 'lib/components/Table/utils'
 import { capitalizeFirstLetter } from 'lib/utils'
 import stringWithWBR from 'lib/utils/stringWithWBR'
-import React from 'react'
 import { urls } from 'scenes/urls'
 import { FeatureFlagReleaseType } from '~/types'
 import { relatedFeatureFlagsLogic, RelatedFeatureFlag } from './relatedFeatureFlagsLogic'
 
 interface Props {
     distinctId: string
+    groups?: { [key: string]: string }
 }
 
 export enum FeatureFlagMatchReason {
@@ -29,11 +29,11 @@ const featureFlagMatchMapping = {
     [FeatureFlagMatchReason.Disabled]: 'Disabled',
 }
 
-export function RelatedFeatureFlags({ distinctId }: Props): JSX.Element {
+export function RelatedFeatureFlags({ distinctId, groups }: Props): JSX.Element {
     const { filteredMappedFlags, relatedFeatureFlagsLoading, searchTerm, filters } = useValues(
-        relatedFeatureFlagsLogic({ distinctId })
+        relatedFeatureFlagsLogic({ distinctId, groups })
     )
-    const { setSearchTerm, setFilters } = useActions(relatedFeatureFlagsLogic({ distinctId }))
+    const { setSearchTerm, setFilters } = useActions(relatedFeatureFlagsLogic({ distinctId, groups }))
 
     const columns: LemonTableColumns<RelatedFeatureFlag> = [
         {
@@ -73,7 +73,9 @@ export function RelatedFeatureFlags({ distinctId }: Props): JSX.Element {
             width: 150,
             render: function Render(_, featureFlag: RelatedFeatureFlag) {
                 return (
-                    <div style={{ wordBreak: 'break-word' }}>{capitalizeFirstLetter(featureFlag.value.toString())}</div>
+                    <div style={{ wordBreak: 'break-word' }}>
+                        {featureFlag.active ? capitalizeFirstLetter(featureFlag.value.toString()) : '--'}
+                    </div>
                 )
             },
         },

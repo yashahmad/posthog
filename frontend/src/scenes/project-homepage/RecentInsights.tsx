@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import './ProjectHomepage.scss'
 import { useActions, useValues } from 'kea'
 import { dayjs } from 'lib/dayjs'
@@ -16,7 +16,7 @@ interface InsightRowProps {
     insight: InsightModel
 }
 
-function InsightRow({ insight }: InsightRowProps): JSX.Element {
+export function InsightRow({ insight }: InsightRowProps): JSX.Element {
     const { reportInsightOpenedFromRecentInsightList } = useActions(eventUsageLogic)
 
     return (

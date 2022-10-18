@@ -155,6 +155,8 @@ def get_distinct_id(data: Dict[str, Any]) -> str:
             except KeyError:
                 statsd.incr("invalid_event", tags={"error": "missing_distinct_id"})
                 raise ValueError('All events must have the event field "distinct_id"!')
+        except TypeError:
+            raise ValueError(f'Properties must be a JSON object, received {type(data["properties"]).__name__}!')
     if not raw_value:
         statsd.incr("invalid_event", tags={"error": "invalid_distinct_id"})
         raise ValueError('Event field "distinct_id" should not be blank!')
@@ -323,7 +325,10 @@ def parse_event(event, distinct_id, ingestion_context):
     return event
 
 
-def capture_internal(event, distinct_id, ip, site_url, now, sent_at, team_id, event_uuid=UUIDT()) -> None:
+def capture_internal(event, distinct_id, ip, site_url, now, sent_at, team_id, event_uuid=None) -> None:
+    if event_uuid is None:
+        event_uuid = UUIDT()
+
     parsed_event = parse_kafka_event_data(
         distinct_id=distinct_id,
         ip=ip,

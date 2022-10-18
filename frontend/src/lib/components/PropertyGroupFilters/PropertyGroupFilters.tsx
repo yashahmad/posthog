@@ -1,4 +1,3 @@
-import React from 'react'
 import { useValues, BindLogic, useActions } from 'kea'
 import '../../../scenes/actions/Actions.scss'
 import { PropertyGroupFilter, FilterLogicalOperator, PropertyGroupFilterValue, FilterType } from '~/types'
@@ -12,6 +11,7 @@ import { IconCopy, IconDelete, IconPlusMini } from '../icons'
 import { LemonButton } from '../LemonButton'
 import { TestAccountFilter } from 'scenes/insights/filters/TestAccountFilter'
 import { LemonDivider } from '../LemonDivider'
+import React from 'react'
 
 interface PropertyGroupFilters {
     value: PropertyGroupFilter
@@ -106,6 +106,11 @@ export function PropertyGroupFilters({
                                                 </div>
                                                 <PropertyFilters
                                                     orFiltering={true}
+                                                    addButton={
+                                                        <LemonButton type="tertiary" noPadding icon={<IconPlusMini />}>
+                                                            Add filter
+                                                        </LemonButton>
+                                                    }
                                                     propertyFilters={group.values}
                                                     style={{ marginBottom: 0 }}
                                                     onChange={(properties) => {

@@ -12,7 +12,10 @@ export interface LemonButtonPopup extends Omit<PopupProps, 'children'> {
 }
 export interface LemonButtonPropsBase
     // NOTE: We explicitly pick rather than omit to ensure these components aren't used incorrectly
-    extends Pick<React.ButtonHTMLAttributes<HTMLElement>, 'title' | 'onClick' | 'id' | 'tabIndex' | 'form'> {
+    extends Pick<
+        React.ButtonHTMLAttributes<HTMLElement>,
+        'title' | 'onClick' | 'id' | 'tabIndex' | 'form' | 'onMouseDown'
+    > {
     children?: React.ReactNode
     type?: 'primary' | 'secondary' | 'tertiary'
     /** What color scheme the button should follow */
@@ -80,6 +83,8 @@ function LemonButtonInternal(
 
     const ButtonComponent = to ? Link : 'button'
 
+    const linkOnlyProps = to ? { disableClientSideRouting } : {}
+
     if (ButtonComponent === 'button' && !buttonProps['aria-label'] && typeof tooltip === 'string') {
         buttonProps['aria-label'] = tooltip
     }
@@ -106,7 +111,7 @@ function LemonButtonInternal(
             disabled={disabled || loading}
             to={to}
             target={targetBlank ? '_blank' : undefined}
-            disableClientSideRouting={disableClientSideRouting}
+            {...linkOnlyProps}
             {...buttonProps}
         >
             {icon ? <span className="LemonButton__icon">{icon}</span> : null}

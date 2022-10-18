@@ -316,7 +316,7 @@ class TestSignupAPI(APIBaseTest):
 
         dashboard: Dashboard = Dashboard.objects.first()  # type: ignore
         self.assertEqual(dashboard.team, user.team)
-        self.assertEqual(dashboard.insights.count(), 6)
+        self.assertEqual(dashboard.tiles.count(), 6)
         self.assertEqual(dashboard.name, "My App Dashboard")
         self.assertEqual(Dashboard.objects.filter(team=user.team).count(), 1)
 
@@ -461,15 +461,21 @@ class TestSignupAPI(APIBaseTest):
     @patch("posthoganalytics.capture")
     @mock.patch("social_core.backends.base.BaseAuth.request")
     @mock.patch("posthog.api.authentication.get_instance_available_sso_providers")
+    @mock.patch("posthog.tasks.user_identify.identify_task")
     @pytest.mark.ee
-    def test_social_signup_with_whitelisted_domain_on_self_hosted(self, mock_sso_providers, mock_request, mock_capture):
+    def test_social_signup_with_whitelisted_domain_on_self_hosted(
+        self, mock_identify, mock_sso_providers, mock_request, mock_capture
+    ):
         self.run_test_for_whitelisted_domain(mock_sso_providers, mock_request, mock_capture)
 
     @patch("posthoganalytics.capture")
     @mock.patch("social_core.backends.base.BaseAuth.request")
     @mock.patch("posthog.api.authentication.get_instance_available_sso_providers")
+    @mock.patch("posthog.tasks.user_identify.identify_task")
     @pytest.mark.ee
-    def test_social_signup_with_whitelisted_domain_on_cloud(self, mock_sso_providers, mock_request, mock_capture):
+    def test_social_signup_with_whitelisted_domain_on_cloud(
+        self, mock_identify, mock_sso_providers, mock_request, mock_capture
+    ):
         with self.settings(MULTI_TENANCY=True):
             self.run_test_for_whitelisted_domain(mock_sso_providers, mock_request, mock_capture)
 

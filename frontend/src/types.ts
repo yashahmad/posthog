@@ -15,7 +15,6 @@ import { PROPERTY_MATCH_TYPE, DashboardRestrictionLevel, DashboardPrivilegeLevel
 import { UploadFile } from 'antd/lib/upload/interface'
 import { eventWithTime } from 'rrweb/typings/types'
 import { PostHog } from 'posthog-js'
-import React from 'react'
 import { PopupProps } from 'lib/components/Popup/Popup'
 import { dayjs } from 'lib/dayjs'
 import { ChartDataset, ChartType, InteractionItem } from 'chart.js'
@@ -24,6 +23,8 @@ import { TaxonomicFilterGroupType } from 'lib/components/TaxonomicFilter/types'
 import { BehavioralFilterKey, BehavioralFilterType } from 'scenes/cohorts/CohortFilters/types'
 import { LogicWrapper } from 'kea'
 import { AggregationAxisFormat } from 'scenes/insights/aggregationAxisFormat'
+import { RowStatus } from 'scenes/session-recordings/player/list/listLogic'
+import { Layout } from 'react-grid-layout'
 
 export type Optional<T, K extends string | number | symbol> = Omit<T, K> & { [K in keyof T]?: T[K] }
 
@@ -47,6 +48,7 @@ export enum AvailableFeature {
     BEHAVIORAL_COHORT_FILTERING = 'behavioral_cohort_filtering',
     WHITE_LABELLING = 'white_labelling',
     SUBSCRIPTIONS = 'subscriptions',
+    APP_METRICS = 'app_metrics',
 }
 
 export enum LicensePlan {
@@ -59,6 +61,11 @@ export enum Realm {
     Demo = 'demo',
     SelfHostedPostgres = 'hosted',
     SelfHostedClickHouse = 'hosted-clickhouse',
+}
+
+export enum Region {
+    US = 'US',
+    EU = 'EU',
 }
 
 export type SSOProviders = 'google-oauth2' | 'github' | 'gitlab' | 'saml'
@@ -90,6 +97,7 @@ export interface UserBasicType extends UserBaseType {
 export interface UserType extends UserBaseType {
     date_joined: string
     email_opt_in: boolean
+    notification_settings: NotificationSettings
     events_column_config: ColumnConfig
     anonymize_data: boolean
     toolbar_mode: 'disabled' | 'toolbar'
@@ -101,6 +109,9 @@ export interface UserType extends UserBaseType {
     organizations: OrganizationBasicType[]
     realm?: Realm
     posthog_version?: string
+}
+export interface NotificationSettings {
+    plugin_disabled: boolean
 }
 
 export interface PluginAccess {
@@ -233,8 +244,10 @@ export interface TeamType extends TeamBasicType {
     updated_at: string
     anonymize_ips: boolean
     app_urls: string[]
+    recording_domains: string[]
     slack_incoming_webhook: string
     session_recording_opt_in: boolean
+    capture_console_log_opt_in: boolean
     test_account_filters: AnyPropertyFilter[]
     test_account_filters_default_checked: boolean
     path_cleaning_filters: Record<string, any>[]
@@ -376,6 +389,12 @@ export enum ExperimentsTabs {
     Archived = 'archived',
 }
 
+export enum ExperimentStatus {
+    Draft = 'draft',
+    Running = 'running',
+    Complete = 'complete',
+}
+
 /** Sync with plugin-server/src/types.ts */
 interface BasePropertyFilter {
     key: string
@@ -415,7 +434,7 @@ export interface CohortPropertyFilter extends BasePropertyFilter {
     value: number
 }
 
-export type SessionRecordingId = string
+export type SessionRecordingId = SessionRecordingType['id']
 
 export interface PlayerPosition {
     time: number
@@ -458,12 +477,19 @@ export interface SessionRecordingMeta {
     startAndEndTimesByWindowId: Record<string, RecordingStartAndEndTime>
     recordingDurationMs: number
 }
-export interface SessionPlayerData {
+
+export interface SessionPlayerSnapshotData {
     snapshotsByWindowId: Record<string, eventWithTime[]>
+    next?: string
+}
+
+export interface SessionPlayerMetaData {
     person: PersonType | null
     metadata: SessionRecordingMeta
+}
+
+export interface SessionPlayerData extends SessionPlayerSnapshotData, SessionPlayerMetaData {
     bufferedTo: PlayerPosition | null
-    next?: string
 }
 
 export enum SessionRecordingUsageType {
@@ -483,6 +509,7 @@ export enum SessionPlayerState {
     PAUSE = 'pause',
     SCRUB = 'scrub',
     SKIP = 'skip',
+    ERROR = 'error',
 }
 
 /** Sync with plugin-server/src/types.ts */
@@ -562,13 +589,14 @@ export interface PersonListParams {
     distinct_id?: string
 }
 
-interface MatchedRecordingEvents {
+export interface MatchedRecordingEvents {
     uuid: string
+    session_id: string
     window_id: string
     timestamp: string
 }
 export interface MatchedRecording {
-    session_id: string
+    session_id?: string
     events: MatchedRecordingEvents[]
 }
 
@@ -723,6 +751,7 @@ export interface RecordingTimeMixinType {
 
 export interface RecordingEventType extends EventType, RecordingTimeMixinType {
     percentageOfRecordingDuration: number // Used to place the event on the seekbar
+    level?: RowStatus.Match | RowStatus.Information // If undefined, by default information row
 }
 
 export interface EventsTableRowItem {
@@ -741,6 +770,8 @@ export interface SessionRecordingType {
     start_time: string
     /** When the recording ends in ISO format. */
     end_time: string
+    /** List of matching events. **/
+    matching_events?: MatchedRecording[]
     distinct_id?: string
     email?: string
     person?: PersonType
@@ -802,16 +833,36 @@ export enum InsightColor {
     Purple = 'purple',
 }
 
-export interface DashboardTile {
-    result: any | null
-    layouts: Record<string, any>
-    color: InsightColor | null
+export interface Cacheable {
     last_refresh: string | null
-    filters: Partial<FilterType>
     filters_hash: string
+    refreshing: boolean
 }
 
-export interface InsightModel extends DashboardTile {
+export interface TileLayout extends Omit<Layout, 'i'> {
+    i?: string // we use `i` in the front end but not in the API
+}
+
+export interface Tileable {
+    layouts: Record<DashboardLayoutSize, TileLayout> | Record<string, never> // allow an empty object or one with DashboardLayoutSize keys
+    color: InsightColor | null
+}
+
+export interface DashboardTile extends Tileable, Cacheable {
+    id: number
+    insight?: InsightModel
+    text?: TextModel
+    deleted?: boolean
+}
+
+export interface TextModel {
+    body: string
+    created_by?: UserBasicType
+    last_modified_by?: UserBasicType
+    last_modified_at: string
+}
+
+export interface InsightModel extends Cacheable {
     /** The unique key we use when communicating with the user, e.g. in URLs */
     short_id: InsightShortId
     /** The primary key in the database, used as well in API endpoints */
@@ -821,11 +872,11 @@ export interface InsightModel extends DashboardTile {
     description?: string
     favorited?: boolean
     order: number | null
+    result: any | null
     deleted: boolean
     saved: boolean
     created_at: string
     created_by: UserBasicType | null
-    refreshing: boolean
     is_sample: boolean
     dashboards: number[] | null
     updated_at: string
@@ -837,6 +888,9 @@ export interface InsightModel extends DashboardTile {
     timezone?: string | null
     /** Only used in the frontend to store the next breakdown url */
     next?: string
+    /** Only used in the frontend to toggle showing Baseline in funnels or not */
+    disable_baseline?: boolean
+    filters: Partial<FilterType>
 }
 
 export interface DashboardType {
@@ -844,7 +898,7 @@ export interface DashboardType {
     name: string
     description: string
     pinned: boolean
-    items: InsightModel[]
+    tiles: DashboardTile[]
     created_at: string
     created_by: UserBasicType | null
     is_shared: boolean
@@ -926,7 +980,7 @@ export interface FrontendApp {
 }
 
 export interface JobPayloadFieldOptions {
-    type: 'string' | 'boolean' | 'json' | 'number' | 'date'
+    type: 'string' | 'boolean' | 'json' | 'number' | 'date' | 'daterange'
     title?: string
     required?: boolean
     default?: any
@@ -944,6 +998,11 @@ export interface PluginConfigType {
     order: number
     config: Record<string, any>
     error?: PluginErrorType
+}
+
+export interface PluginConfigWithPluginInfo extends PluginConfigType {
+    id: number
+    plugin_info: PluginType
 }
 
 export interface PluginErrorType {
@@ -1133,7 +1192,9 @@ export interface FilterType {
     breakdown_attribution_type?: BreakdownAttributionType // funnels breakdown attribution type
     breakdown_attribution_value?: number // funnels breakdown attribution specific step value
     breakdown_histogram_bin_count?: number // trends breakdown histogram bin count
-    aggregation_axis_format?: AggregationAxisFormat
+    aggregation_axis_format?: AggregationAxisFormat // a fixed format like duration that needs calculation
+    aggregation_axis_prefix?: string // a prefix to add to the aggregation axis e.g. £
+    aggregation_axis_postfix?: string // a postfix to add to the aggregation axis e.g. %
 }
 
 export interface RecordingEventsFilters {
@@ -1160,12 +1221,12 @@ export interface EditorFilterProps {
 
 export interface InsightEditorFilter {
     key: string
-    label?: string
+    label?: string | ((props: EditorFilterProps) => JSX.Element | null)
     tooltip?: JSX.Element
     showOptional?: boolean
     position?: 'left' | 'right'
     valueSelector?: (insight: Partial<InsightModel>) => any
-    component?: (props: EditorFilterProps) => JSX.Element
+    component?: (props: EditorFilterProps) => JSX.Element | null
 }
 
 export interface SystemStatusSubrows {
@@ -1348,7 +1409,8 @@ export interface FlattenedFunnelStepByBreakdown {
     rowKey: number | string
     isBaseline?: boolean
     breakdown?: BreakdownKeyType
-    breakdown_value?: BreakdownKeyType
+    // :KLUDGE: Data transforms done in `getBreakdownStepValues`
+    breakdown_value?: Array<string | number>
     breakdownIndex?: number
     conversionRates?: {
         total: number
@@ -1460,6 +1522,7 @@ export interface PreflightStatus {
     demo: boolean
     celery: boolean
     realm: Realm
+    region: Region
     available_social_auth_providers: AuthBackends
     available_timezones?: Record<string, number>
     opt_out_capture?: boolean
@@ -1981,11 +2044,7 @@ export type Duration = {
     unit: SmallTimeUnit
 }
 
-export type CombinedEvent = EventDefinition | ActionType
-
-export enum CombinedEventType {
-    All = 'all',
-    ActionEvent = 'action_event',
+export enum EventDefinitionType {
     Event = 'event',
     EventCustom = 'event_custom',
     EventPostHog = 'event_posthog',
@@ -2045,9 +2104,17 @@ export interface SessionRecordingPlayerProps {
     sessionRecordingId: SessionRecordingId
     playerKey: string
     includeMeta?: boolean
+    recordingStartTime?: string
+    matching?: MatchedRecording[]
 }
 
 export enum FeatureFlagReleaseType {
     ReleaseToggle = 'Release toggle',
     Variants = 'Multiple variants',
+}
+
+export interface MediaUploadResponse {
+    id: string
+    image_location: string
+    name: string
 }

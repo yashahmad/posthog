@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useActions, useValues } from 'kea'
 import { router } from 'kea-router'
-import React, { HTMLProps, useCallback, useEffect, useMemo, useState } from 'react'
+import { HTMLProps, useCallback, useEffect, useMemo, useState } from 'react'
 import { Tooltip } from '../Tooltip'
 import { TableRow } from './TableRow'
 import './LemonTable.scss'
@@ -10,6 +10,7 @@ import { ExpandableConfig, LemonTableColumn, LemonTableColumnGroup, LemonTableCo
 import { PaginationAuto, PaginationControl, PaginationManual, usePagination } from '../PaginationControl'
 import { useScrollable } from 'lib/hooks/useScrollable'
 import { LemonSkeleton } from '../LemonSkeleton'
+import { LemonTableLoader } from './LemonTableLoader'
 
 /**
  * Determine the column's key, using `dataIndex` as fallback.
@@ -267,31 +268,28 @@ export function LemonTable<T extends Record<string, any>>({
                                                         : undefined
                                                 }
                                             >
-                                                <Tooltip
-                                                    title={
-                                                        column.sorter &&
-                                                        (() => {
-                                                            const nextSorting = getNextSorting(
-                                                                currentSorting,
-                                                                determineColumnKey(column, 'sorting'),
-                                                                disableSortingCancellation
-                                                            )
-                                                            return `Click to ${
-                                                                nextSorting
-                                                                    ? nextSorting.order === 1
-                                                                        ? 'sort ascending'
-                                                                        : 'sort descending'
-                                                                    : 'cancel sorting'
-                                                            }`
-                                                        })
-                                                    }
+                                                <div
+                                                    className="LemonTable__header-content items-center"
+                                                    style={{ justifyContent: column.align }}
                                                 >
-                                                    <div
-                                                        className="LemonTable__header-content"
-                                                        style={{ justifyContent: column.align }}
-                                                    >
-                                                        {column.title}
-                                                        {column.sorter && (
+                                                    {column.title}
+                                                    {column.sorter && (
+                                                        <Tooltip
+                                                            title={() => {
+                                                                const nextSorting = getNextSorting(
+                                                                    currentSorting,
+                                                                    determineColumnKey(column, 'sorting'),
+                                                                    disableSortingCancellation
+                                                                )
+                                                                return `Click to ${
+                                                                    nextSorting
+                                                                        ? nextSorting.order === 1
+                                                                            ? 'sort ascending'
+                                                                            : 'sort descending'
+                                                                        : 'cancel sorting'
+                                                                }`
+                                                            }}
+                                                        >
                                                             <SortingIndicator
                                                                 order={
                                                                     currentSorting?.columnKey ===
@@ -300,14 +298,15 @@ export function LemonTable<T extends Record<string, any>>({
                                                                         : null
                                                                 }
                                                             />
-                                                        )}
-                                                    </div>
-                                                </Tooltip>
+                                                            {/* this non-breaking space lets antd's tooltip work*/}{' '}
+                                                        </Tooltip>
+                                                    )}
+                                                </div>
                                             </th>
                                         ))
                                     )}
+                                    <LemonTableLoader loading={loading} />
                                 </tr>
-                                <tr className="LemonTable__loader" />
                             </thead>
                         )}
                         <tbody>

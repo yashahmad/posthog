@@ -1,4 +1,4 @@
-import { actions, afterMount, connect, kea, key, listeners, path, props, reducers, selectors } from 'kea'
+import { actions, afterMount, kea, key, listeners, path, props, reducers, selectors } from 'kea'
 
 import type { pluginSourceLogicType } from './pluginSourceLogicType'
 import { forms } from 'kea-forms'
@@ -6,11 +6,8 @@ import api from 'lib/api'
 import { loaders } from 'kea-loaders'
 import { lemonToast } from 'lib/components/lemonToast'
 import { validateJson } from 'lib/utils'
-import React from 'react'
 import { FormErrors } from 'lib/forms/Errors'
 import { pluginsLogic } from 'scenes/plugins/pluginsLogic'
-import { featureFlagLogic } from 'lib/logic/featureFlagLogic'
-import { FEATURE_FLAGS } from 'lib/constants'
 import { frontendAppsLogic } from 'scenes/apps/frontendAppsLogic'
 import { formatSource } from 'scenes/plugins/source/formatSource'
 
@@ -25,15 +22,18 @@ export const pluginSourceLogic = kea<pluginSourceLogicType>([
     props({} as PluginSourceProps),
     key((props) => props.pluginConfigId ?? `plugin-${props.pluginId}`),
 
-    connect({ values: [featureFlagLogic, ['featureFlags']] }),
-
     actions({
         setCurrentFile: (currentFile: string) => ({ currentFile }),
         closePluginSource: true,
     }),
 
     reducers({
-        currentFile: ['plugin.json', { setCurrentFile: (_, { currentFile }) => currentFile }],
+        currentFile: [
+            'plugin.json',
+            {
+                setCurrentFile: (_, { currentFile }) => currentFile,
+            },
+        ],
     }),
 
     forms(({ actions, props, values }) => ({
@@ -108,11 +108,10 @@ export const pluginSourceLogic = kea<pluginSourceLogicType>([
             },
         ],
         fileNames: [
-            (s) => [s.featureFlags],
-            (featureFlags): string[] =>
-                featureFlags[FEATURE_FLAGS.FRONTEND_APPS]
-                    ? ['plugin.json', 'index.ts', 'frontend.tsx']
-                    : ['plugin.json', 'index.ts'],
+            () => [],
+            (): string[] => {
+                return Array.from(new Set(['plugin.json', 'index.ts', 'frontend.tsx', 'site.ts']))
+            },
         ],
     }),
 

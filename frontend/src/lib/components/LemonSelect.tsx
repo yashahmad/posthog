@@ -1,5 +1,5 @@
 import { LemonDivider } from '@posthog/lemon-ui'
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IconClose } from './icons'
 import { LemonButton, LemonButtonWithPopup, LemonButtonWithPopupProps } from './LemonButton'
 import { PopupProps } from './Popup/Popup'
@@ -7,7 +7,7 @@ import './LemonSelect.scss'
 import clsx from 'clsx'
 
 export interface LemonSelectOption<T> {
-    value?: T
+    value: T
     label: string | JSX.Element
     icon?: React.ReactElement
     sideIcon?: React.ReactElement

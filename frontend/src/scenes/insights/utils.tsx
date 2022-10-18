@@ -20,7 +20,7 @@ import api from 'lib/api'
 import { getCurrentTeamId } from 'lib/utils/logics'
 import { groupsModelType } from '~/models/groupsModelType'
 import { toLocalFilters } from './filters/ActionFilter/entityFilterLogic'
-import { RETENTION_FIRST_TIME } from 'lib/constants'
+import { EVENT_COUNT_PER_ACTOR, RETENTION_FIRST_TIME } from 'lib/constants'
 import { retentionOptions } from 'scenes/retention/retentionTableLogic'
 import { cohortsModelType } from '~/models/cohortsModelType'
 import { mathsLogicType } from 'scenes/trends/mathsLogicType'
@@ -28,7 +28,7 @@ import { apiValueToMathType, MathDefinition } from 'scenes/trends/mathsLogic'
 import { dashboardsModel } from '~/models/dashboardsModel'
 import { insightLogic } from './insightLogic'
 import { FormatPropertyValueForDisplayFunction } from '~/models/propertyDefinitionsModel'
-import React, { ReactNode } from 'react'
+import { ReactNode } from 'react'
 
 export const getDisplayNameFromEntityFilter = (
     filter: EntityFilter | ActionFilter | null,
@@ -97,7 +97,7 @@ export function findInsightFromMountedLogic(
     if (dashboardId) {
         const insightOnDashboard = dashboardLogic
             .findMounted({ id: dashboardId })
-            ?.values.allItems?.items?.find((item) => item.short_id === insightShortId)
+            ?.values.insightTiles?.find((tile) => tile.insight?.short_id === insightShortId)?.insight
         if (insightOnDashboard) {
             return insightOnDashboard
         } else {
@@ -106,7 +106,7 @@ export function findInsightFromMountedLogic(
             for (const dashModelId of Object.keys(dashboards || {})) {
                 foundOnModel = dashboardLogic
                     .findMounted({ id: parseInt(dashModelId) })
-                    ?.values.allItems?.items?.find((item) => item.short_id === insightShortId)
+                    ?.values.insightTiles?.find((tile) => tile.insight?.short_id === insightShortId)?.insight
             }
             return foundOnModel || null
         }
@@ -265,19 +265,32 @@ export function summarizeInsightFilters(
                             const mathType = apiValueToMathType(localFilter.math, localFilter.math_group_type_index)
                             const mathDefinition = mathDefinitions[mathType] as MathDefinition | undefined
                             const propertyMath: string =
-                                mathDefinition?.onProperty && localFilter.math_property
+                                mathDefinition?.onProperty &&
+                                localFilter.math_property &&
+                                localFilter.math_property !== EVENT_COUNT_PER_ACTOR
                                     ? `'s ${
                                           keyMapping.event[localFilter.math_property]?.label ||
                                           localFilter.math_property
                                       }`
                                     : ''
-                            let series = `${getDisplayNameFromEntityFilter(localFilter)}${propertyMath} ${
-                                mathDefinition
-                                    ? mathDefinition.shortName
-                                    : localFilter.math === 'unique_group'
-                                    ? 'unique groups'
-                                    : mathType
-                            }`
+                            let series: string
+                            if (localFilter.math && localFilter.math_property === EVENT_COUNT_PER_ACTOR) {
+                                series = `${capitalizeFirstLetter(
+                                    mathDefinition
+                                        ? mathDefinition.shortName
+                                        : localFilter.math === 'unique_group'
+                                        ? 'unique groups'
+                                        : mathType
+                                )} ${getDisplayNameFromEntityFilter(localFilter)}${propertyMath} count per user`
+                            } else {
+                                series = `${getDisplayNameFromEntityFilter(localFilter)}${propertyMath} ${
+                                    mathDefinition
+                                        ? mathDefinition.shortName
+                                        : localFilter.math === 'unique_group'
+                                        ? 'unique groups'
+                                        : mathType
+                                }`
+                            }
                             if (filters.formula) {
                                 series = `${alphabet[localFilterIndex].toUpperCase()}. ${series}`
                             }
@@ -328,11 +341,11 @@ export function formatAggregationValue(
 }
 
 export function formatBreakdownLabel(
-    cohorts?: CohortType[],
-    formatPropertyValueForDisplay?: FormatPropertyValueForDisplayFunction,
-    breakdown_value?: BreakdownKeyType,
-    breakdown?: BreakdownKeyType,
-    breakdown_type?: BreakdownType | null,
+    cohorts: CohortType[] | undefined,
+    formatPropertyValueForDisplay: FormatPropertyValueForDisplayFunction | undefined,
+    breakdown_value: BreakdownKeyType | undefined,
+    breakdown: BreakdownKeyType | undefined,
+    breakdown_type: BreakdownType | null | undefined,
     isHistogram?: boolean
 ): string {
     if (isHistogram && typeof breakdown_value === 'string') {
@@ -353,10 +366,13 @@ export function formatBreakdownLabel(
         )
         return `${formattedBucketStart} – ${formattedBucketEnd}`
     }
-    if (typeof breakdown_value == 'number') {
-        if (breakdown_type === 'cohort') {
-            return cohorts?.filter((c) => c.id == breakdown_value)[0]?.name ?? breakdown_value.toString()
+    if (breakdown_type === 'cohort') {
+        // :TRICKY: Different endpoints represent the all users cohort breakdown differently
+        if (breakdown_value === 0 || breakdown_value === 'all') {
+            return 'All Users'
         }
+        return cohorts?.filter((c) => c.id == breakdown_value)[0]?.name ?? (breakdown_value || '').toString()
+    } else if (typeof breakdown_value == 'number') {
         return formatPropertyValueForDisplay
             ? formatPropertyValueForDisplay(breakdown, breakdown_value)?.toString() ?? 'None'
             : breakdown_value.toString()

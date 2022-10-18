@@ -17,6 +17,8 @@ export const urls = {
     dashboards: (): string => '/dashboard',
     dashboard: (id: string | number, highlightInsightId?: string): string =>
         combineUrl(`/dashboard/${id}`, highlightInsightId ? { highlightInsightId } : {}).url,
+    dashboardTextTile: (id: string | number, textTileId: string | number): string =>
+        `${urls.dashboard(id)}/text-tiles/${textTileId}`,
     dashboardSharing: (id: string | number): string => `/dashboard/${id}/sharing`,
     dashboardSubcriptions: (id: string | number): string => `/dashboard/${id}/subscriptions`,
     dashboardSubcription: (id: string | number, subscriptionId: string): string =>
@@ -31,6 +33,7 @@ export const urls = {
     eventPropertyDefinitions: (): string => '/data-management/event-properties',
     eventPropertyDefinition: (id: string | number): string => `/data-management/event-properties/${id}`,
     events: (): string => '/events',
+    ingestionWarnings: (): string => '/data-management/ingestion-warnings',
     insightNew: (filters?: Partial<FilterType>, dashboardId?: DashboardType['id'] | null): string =>
         combineUrl('/insights/new', dashboardId ? { dashboard: dashboardId } : {}, filters ? { filters } : {}).url,
     insightEdit: (id: InsightShortId): string => `/insights/${id}/edit`,
@@ -59,6 +62,9 @@ export const urls = {
     annotations: (): string => '/annotations',
     projectApps: (): string => '/project/apps',
     frontendApp: (id: string | number): string => `/app/${id}`,
+    appMetrics: (pluginConfigId: string | number, tab?: string): string =>
+        combineUrl(`/app/${pluginConfigId}/metrics`, { tab }).url,
+    appHistoricalExports: (pluginConfigId: string | number): string => `/app/${pluginConfigId}/historical_exports`,
     projectCreateFirst: (): string => '/project/create',
     projectHomepage: (): string => '/home',
     projectSettings: (section?: string): string => `/project/settings${section ? `#${section}` : ''}`,

@@ -1,10 +1,10 @@
 import './PropertyKeyInfo.scss'
-import React from 'react'
 import { Popover } from 'antd'
 import { KeyMapping, PropertyDefinition, PropertyFilterValue } from '~/types'
 import { ANTD_TOOLTIP_PLACEMENTS } from 'lib/utils'
 import { TooltipPlacement } from 'antd/lib/tooltip'
 import clsx from 'clsx'
+import { EVENT_COUNT_PER_ACTOR } from 'lib/constants'
 
 export interface KeyMappingInterface {
     event: Record<string, KeyMapping>
@@ -413,6 +413,17 @@ export const keyMapping: KeyMappingInterface = {
             description: 'Raw Sentry exception data',
             hide: true,
         },
+        $sentry_exception_message: {
+            label: 'Sentry exception message',
+        },
+        $sentry_exception_type: {
+            label: 'Sentry exception type',
+            description: 'Class name of the exception object',
+        },
+        $sentry_tags: {
+            label: 'Sentry tags',
+            description: 'Tags sent to Sentry along with the exception',
+        },
         $ce_version: {
             label: '$ce_version',
             description: '',
@@ -592,6 +603,9 @@ export const keyMapping: KeyMappingInterface = {
         $exception: {
             label: 'Exception',
             description: 'Automatically captured exceptions from the client Sentry integration',
+        },
+        [EVENT_COUNT_PER_ACTOR]: {
+            label: 'Event count per user',
         },
     },
     element: {
