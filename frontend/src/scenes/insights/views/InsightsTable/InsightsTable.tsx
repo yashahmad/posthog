@@ -262,10 +262,10 @@ export function InsightsTable({
         columns.push({
             title: calcColumnMenu ? (
                 <Dropdown overlay={calcColumnMenu}>
-                    <span className="cursor-pointer">
+                    <div className="cursor-pointer">
                         {CALC_COLUMN_LABELS[calcColumnState]}
                         <DownOutlined className="ml-1" />
-                    </span>
+                    </div>
                 </Dropdown>
             ) : (
                 CALC_COLUMN_LABELS.total
