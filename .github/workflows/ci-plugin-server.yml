@@ -49,7 +49,7 @@ jobs:
         steps:
             - uses: actions/checkout@v3
 
-            - name: Set up Node 18
+            - name: Set up Node.js
               uses: actions/setup-node@v3
               with:
                   node-version: 18
@@ -109,7 +109,7 @@ jobs:
                   python -m pip install -r requirements-dev.txt
                   python -m pip install -r requirements.txt
 
-            - name: Set up Node 18
+            - name: Set up Node.js
               uses: actions/setup-node@v3
               with:
                   node-version: 18
@@ -191,7 +191,7 @@ jobs:
                   python -m pip install -r requirements-dev.txt
                   python -m pip install -r requirements.txt
 
-            - name: Set up Node 18
+            - name: Set up Node.js
               uses: actions/setup-node@v3
               with:
                   node-version: 18
